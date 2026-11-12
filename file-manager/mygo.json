@@ -1,0 +1,6 @@
+{
+  "name": "file-manager",
+  "identifier": "com.example.filemanager",
+  "version": "0.1.0",
+  "out": "build"
+}
