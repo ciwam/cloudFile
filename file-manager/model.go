@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"file-manager/locales"
 	"file-manager/vfs"
 
 	"github.com/egoist/mygo"
@@ -50,6 +51,16 @@ type model struct {
 	confirmDelOpen bool
 	newFolderOpen  bool
 	newFolderName  string
+
+	// settings
+	settingsOpen bool
+	langChoice   string
+	langPicked   bool
+	langApplied  bool // test hook: an applyLocale ran
+
+	// applyLocale applies a language choice; nil in tests, which set
+	// langChoice directly.
+	applyLocale func(tag string)
 
 	// clipboard of VFS paths, cut if cutMode
 	clipPaths []string
@@ -292,7 +303,7 @@ func (a *model) mkdirDone(name string, err error) {
 	switch {
 	case err == nil:
 	case errors.Is(err, vfs.ErrExist):
-		a.setStatus("already exists: " + name)
+		a.setStatus(locales.AlreadyExists(name))
 	default:
 		a.setStatus(err.Error())
 	}
@@ -335,9 +346,9 @@ func (a *model) rename(i int, newName string) {
 func (a *model) renameDone(oldName, newName string, err error) {
 	switch {
 	case err == nil:
-		a.setStatus(fmt.Sprintf("Renamed %s → %s", oldName, newName))
+		a.setStatus(locales.Renamed(oldName, newName))
 	case errors.Is(err, vfs.ErrExist):
-		a.setStatus("already exists: " + newName)
+		a.setStatus(locales.AlreadyExists(newName))
 	default:
 		a.setStatus(err.Error())
 	}
@@ -347,7 +358,7 @@ func (a *model) renameDone(oldName, newName string, err error) {
 // validName rejects names that are not a single path element.
 func validName(name string) error {
 	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\") || strings.ContainsRune(name, 0) {
-		return fmt.Errorf("invalid name: %q", name)
+		return errors.New(locales.InvalidName(name))
 	}
 	return nil
 }
@@ -387,7 +398,7 @@ func (a *model) trashDone(n int, errs []error) {
 		}
 	}
 	if n > 0 && failed == 0 {
-		a.setStatus(fmt.Sprintf("Moved %d item(s) to Trash", n))
+		a.setStatus(locales.MovedToTrash(n))
 	}
 	a.selected = -1
 	a.refresh()
@@ -431,7 +442,7 @@ func (a *model) pasteInto(dir string, paths []string, cut bool) error {
 			continue
 		}
 		if dst == src || strings.HasPrefix(dst, src+"/") {
-			firstErr = fmt.Errorf("cannot paste %s into itself", name)
+			firstErr = errors.New(locales.CannotPasteIntoItself(name))
 			continue
 		}
 		var err error
@@ -455,7 +466,7 @@ func (a *model) pasteDone(err error) {
 	if err != nil {
 		a.setStatus(err.Error())
 	} else {
-		a.setStatus("Done")
+		a.setStatus(locales.Done())
 	}
 	a.refresh()
 }
@@ -529,7 +540,7 @@ func (a *model) importFiles(local []string) {
 			if firstErr != nil {
 				a.setStatus(firstErr.Error())
 			} else {
-				a.setStatus(fmt.Sprintf("Imported %d item(s)", len(local)))
+				a.setStatus(locales.Imported(len(local)))
 			}
 			a.refresh()
 		})

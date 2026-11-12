@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"file-manager/locales"
 	"file-manager/vfs"
 
 	"github.com/egoist/mygo"
@@ -26,8 +27,15 @@ func main() {
 	a.history = []string{a.cwd}
 
 	mygo.App.WhenReady(func() {
+		// Main thread: safe to read the app's language choice.
+		a.langChoice = mygo.App.ChosenLocale()
+		a.applyLocale = func(tag string) {
+			mygo.App.SetLocale(tag)
+			a.langChoice = mygo.App.ChosenLocale()
+		}
+
 		a.win = mygo.NewWindow(mygo.WindowOptions{
-			Title:     "Files",
+			Title:     locales.AppName(),
 			Width:     1000,
 			Height:    640,
 			MinWidth:  640,

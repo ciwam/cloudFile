@@ -272,3 +272,37 @@ func TestStatusExpires(t *testing.T) {
 		t.Fatal("status did not expire")
 	}
 }
+
+func TestSettingsLanguageDialog(t *testing.T) {
+	a, tt, root := testModel(t)
+	write(t, root, "f.txt", "1")
+	a.refresh()
+	tt.Frame()
+
+	// Open settings from the toolbar.
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("Language") {
+		t.Fatalf("settings dialog not shown, texts: %v", tt.Texts())
+	}
+
+	// The radios carry the language names in themselves.
+	if err := tt.Click("简体中文"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.langChoice != "zh-Hans" || !a.langApplied {
+		t.Fatalf("langChoice = %q applied=%v, want zh-Hans applied", a.langChoice, a.langApplied)
+	}
+
+	// Back to system.
+	if err := tt.Click("System"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.langChoice != "" || !a.langApplied {
+		t.Fatalf("langChoice = %q applied=%v, want empty (system) applied", a.langChoice, a.langApplied)
+	}
+}
