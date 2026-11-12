@@ -306,3 +306,37 @@ func TestSettingsLanguageDialog(t *testing.T) {
 		t.Fatalf("langChoice = %q applied=%v, want empty (system) applied", a.langChoice, a.langApplied)
 	}
 }
+
+func TestNavigateAfterPressDoesNotCrash(t *testing.T) {
+	// Double-clicking a folder navigates while the engine may still hold
+	// the press's state; the ListState must not be zeroed between frames
+	// (regression: SIGSEGV in ui.scrollDragSelect).
+	a, tt, root := testModel(t)
+	if err := os.Mkdir(filepath.Join(root, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "f.txt", "1")
+	a.refresh()
+	tt.Frame()
+
+	// Select a row (a press), then navigate as a double click would.
+	a.selected = 0
+	a.navigate("/sub")
+	a.refresh()
+	tt.Frame()
+	tt.Frame()
+	tt.Frame()
+	if a.cwd != "/sub" {
+		t.Fatalf("cwd = %q", a.cwd)
+	}
+
+	// And back again, the other direction of the same gesture.
+	if err := tt.Click("Back"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if a.cwd != "/" {
+		t.Fatalf("cwd = %q after Back", a.cwd)
+	}
+}

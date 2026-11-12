@@ -120,9 +120,10 @@ func (a *model) applyLoaded(dir string, list []vfs.Entry, err error) {
 	a.unfiltered = out
 	a.applyFilterAndSort()
 	a.selected = -1
-	sort := a.table.Sort
-	a.table = ui.ListState{}
-	a.table.Sort = sort
+	// Reset the view of the rows without zeroing the ListState: the
+	// engine may still hold a press on one of its rows for this event
+	// cycle, and a zeroed frame crashes its drag-select scroll.
+	a.table.ScrollTo(0, ui.Start)
 	a.table.Key = func(i int) any { return a.entries[i].path }
 	a.table.Label = func(i int) string { return a.entries[i].Name }
 	a.table.Selected = &a.selected
