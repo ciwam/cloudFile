@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -182,7 +181,9 @@ func (a *model) fileTable(c *ui.Context) {
 		switch col {
 		case 0:
 			ui.Row(c).Gap(6).Children(func() {
-				ui.Text(c, iconGlyph(*e)).Width(20).TextColor(t.TextMuted)
+				if ic := entryIcon(*e); ic != nil {
+					ui.Icon(c, ic).Size(16, 16)
+				}
 				if a.renamingPath == e.path {
 					if ui.EditableText(c, &e.Name).Changed() {
 						a.rename(row, e.Name)
@@ -362,38 +363,6 @@ func baseName(p string) string {
 		return p[i+1:]
 	}
 	return p
-}
-
-// iconGlyph returns a simple text glyph per entry kind. Real file-type
-// icons use mygo.Shell.FileIcon, drawn per visible row.
-func iconGlyph(e entry) string {
-	if e.Kind == vfs.KindDir {
-		return "📁"
-	}
-	return extGlyph(strings.ToLower(filepath.Ext(e.Name)))
-}
-
-func extGlyph(ext string) string {
-	switch ext {
-	case ".txt", ".md", ".log":
-		return "📄"
-	case ".png", ".jpg", ".jpeg", ".gif", ".heic", ".webp", ".tiff":
-		return "🖼"
-	case ".go", ".py", ".js", ".ts", ".rs", ".c", ".h", ".sh":
-		return "📜"
-	case ".zip", ".tar", ".gz", ".bz2", ".xz", ".dmg":
-		return "📦"
-	case ".app":
-		return "🚀"
-	case ".pdf":
-		return "📕"
-	case ".mp3", ".m4a", ".flac", ".wav":
-		return "🎵"
-	case ".mp4", ".mov", ".mkv":
-		return "🎬"
-	default:
-		return "📄"
-	}
 }
 
 var _ = os.Getenv
