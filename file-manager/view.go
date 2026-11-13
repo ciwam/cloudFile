@@ -39,6 +39,15 @@ func (a *model) view(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyF) {
 		a.searchFocus.Focus(c)
 	}
+	// Space previews the chosen entry with Quick Look, as Finder does;
+	// ignore the key's auto-repeat so holding Space does not re-open.
+	if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
+		if e := a.chosenEntry(); e != nil {
+			if full, ok := a.localPath(e.path); ok {
+				go mygo.Shell.PreviewItem(full)
+			}
+		}
+	}
 	if c.Shortcut(ui.Cmd, ui.KeyC) && !c.FocusTakesText() {
 		if e := a.selectedEntries(); len(e) > 0 {
 			a.clipPaths, a.cutMode = []string{e[0].path}, false

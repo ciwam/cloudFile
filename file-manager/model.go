@@ -229,6 +229,14 @@ func (a *model) selectedEntries() []entry {
 	return []entry{a.entries[a.selected]}
 }
 
+// chosenEntry returns the entry the keys or click chose, nil for none.
+func (a *model) chosenEntry() *entry {
+	if e := a.selectedEntries(); len(e) > 0 {
+		return &e[0]
+	}
+	return nil
+}
+
 // open does what double click on an entry should: enter a directory, open
 // a file with its default app.
 func (a *model) open(e entry) {

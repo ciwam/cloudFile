@@ -340,3 +340,27 @@ func TestNavigateAfterPressDoesNotCrash(t *testing.T) {
 		t.Fatalf("cwd = %q after Back", a.cwd)
 	}
 }
+
+func TestSpaceChoosesEntry(t *testing.T) {
+	a, tt, root := testModel(t)
+	write(t, root, "pic.png", "x")
+	write(t, root, "plain.txt", "y")
+	a.refresh()
+	tt.Frame()
+
+	// No selection: Space is a no-op (nothing chosen to preview).
+	if e := a.chosenEntry(); e != nil {
+		t.Fatalf("chosenEntry with no selection = %+v", *e)
+	}
+
+	// Keys move the choice; chosenEntry follows it.
+	tt.Frame()
+	a.selected = 1
+	if e := a.chosenEntry(); e == nil || e.Name != "plain.txt" {
+		t.Fatalf("chosenEntry = %+v, want plain.txt", e)
+	}
+	a.selected = 0
+	if e := a.chosenEntry(); e == nil || e.Name != "pic.png" {
+		t.Fatalf("chosenEntry = %+v, want pic.png", e)
+	}
+}
