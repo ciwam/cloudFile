@@ -76,11 +76,6 @@ type model struct {
 	// and appended to the log file.
 	logs []string
 
-	// previewIndex and previewDir track which entry of which directory the
-	// Quick Look panel shows, for the arrows to move through.
-	previewIndex int
-	previewDir   string
-
 	// testNow overrides the clock in tests.
 	testNow func() time.Time
 }
@@ -289,60 +284,44 @@ func (a *model) open(e entry) {
 }
 
 // previewChosen shows the chosen entry in the Quick Look panel, as
-// Finder's space bar does.
+// Finder's space bar does. The panel gets the directory's whole visible
+// listing as its data source, so its own arrow keys move between entries;
+// the list's selection follows.
 func (a *model) previewChosen() {
-	e := a.chosenEntry()
-	if e == nil {
+	if a.selected < 0 || a.selected >= len(a.entries) {
 		a.logf("space preview: nothing selected (selected=%d, entries=%d)", a.selected, len(a.entries))
 		return
 	}
-	full, ok := a.localPath(e.path)
-	if !ok {
-		a.logf("space preview: no local path for %s", e.path)
+	paths := make([]string, 0, len(a.entries))
+	for _, e := range a.entries {
+		if full, ok := a.localPathQuiet(e.path); ok {
+			paths = append(paths, full)
+		}
+	}
+	if len(paths) == 0 {
+		a.logf("space preview: no local paths in %s", a.cwd)
 		return
 	}
-	a.logf("space preview: Quick Look %s", full)
-	a.previewIndex = a.selected
-	a.previewDir = a.cwd
-	go func() {
-		if err := mygo.Shell.PreviewItem(full); err != nil {
-			a.logf("space preview failed: %v", err)
-		}
-	}()
-}
-
-// previewNeighbor moves the Quick Look panel to the next (dir 1) or
-// previous (dir -1) entry of the directory being previewed, as the
-// arrows in Finder's panel do. The panel's own data source holds one
-// item (mygo's), so the app drives the change itself.
-func (a *model) previewNeighbor(dir int) {
-	entries := a.filterSort(a.unfiltered)
-	if a.previewDir != a.cwd || len(entries) == 0 {
-		return // the panel shows another directory's item
-	}
-	next := a.previewIndex + dir
-	if next < 0 {
-		next = len(entries) - 1
-	} else if next >= len(entries) {
-		next = 0
-	}
-	e := entries[next]
-	full, ok := a.localPath(e.path)
+	current := a.entries[a.selected]
+	full, ok := a.localPathQuiet(current.path)
 	if !ok {
+		a.logf("space preview: no local path for %s", current.path)
 		return
 	}
-	a.logf("space preview: Quick Look %s", full)
-	a.previewIndex = next
-	a.selected = next
-	go func() {
-		if err := mygo.Shell.PreviewItem(full); err != nil {
-			a.logf("space preview failed: %v", err)
+	qlSetItems(paths, full)
+	a.logf("space preview: Quick Look %s (%d items)", current.Name, len(paths))
+	if !qlShowPanel() {
+		// The panel is unreachable (class not visible); mygo's one-item
+		// preview still shows something.
+		if full, ok := a.localPath(current.path); ok {
+			go mygo.Shell.PreviewItem(full)
 		}
-	}()
+	}
 }
 
 // localPath resolves a VFS path on the local disk; backends without local
-// paths have none to give the system shell.
+// paths have none to give the system shell. It reports the failure in the
+// status bar.
 func (a *model) localPath(p string) (string, bool) {
 	local, ok := a.fs.(*vfs.Local)
 	if !ok {
@@ -351,6 +330,19 @@ func (a *model) localPath(p string) (string, bool) {
 	full, err := local.Resolve(p)
 	if err != nil {
 		a.setStatus(err.Error())
+		return "", false
+	}
+	return full, true
+}
+
+// localPathQuiet is localPath without touching the status bar.
+func (a *model) localPathQuiet(p string) (string, bool) {
+	local, ok := a.fs.(*vfs.Local)
+	if !ok {
+		return "", false
+	}
+	full, err := local.Resolve(p)
+	if err != nil {
 		return "", false
 	}
 	return full, true

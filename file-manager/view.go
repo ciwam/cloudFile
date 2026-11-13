@@ -40,20 +40,17 @@ func (a *model) view(c *ui.Context) {
 		a.searchFocus.Focus(c)
 	}
 	// Quick Look, as Finder's space bar does: Space opens the preview of
-	// the chosen entry, closes the panel when it shows, and the arrows
-	// move the preview through the directory while it is up. The key's
-	// auto-repeat is ignored, so holding Space does not toggle.
-	if !c.FocusTakesText() && qlPanelVisible() {
-		switch {
-		case c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated():
+	// the chosen entry, closes the panel when it shows. The panel holds
+	// the directory's listing as its data source, so its own arrow keys
+	// move between entries; auto-repeat of Space is ignored, so holding
+	// the key does not toggle.
+	if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
+		if qlPanelVisible() {
 			qlHidePanel()
-		case c.Shortcut(0, ui.KeyDown) && !c.ShortcutRepeated():
-			a.previewNeighbor(1)
-		case c.Shortcut(0, ui.KeyUp) && !c.ShortcutRepeated():
-			a.previewNeighbor(-1)
+			a.logf("space: closed Quick Look")
+		} else {
+			a.previewChosen()
 		}
-	} else if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
-		a.previewChosen()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyC) && !c.FocusTakesText() {
 		if e := a.selectedEntries(); len(e) > 0 {
