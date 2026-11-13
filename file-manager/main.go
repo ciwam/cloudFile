@@ -27,6 +27,12 @@ func main() {
 	a.history = []string{a.cwd}
 
 	mygo.App.WhenReady(func() {
+		// The ObjC class Quick Look needs moved into QuickLookUI on
+		// current macOS; load it before the first space-press.
+		if err := preloadQuickLookUI(); err != nil {
+			a.logf("Quick Look preload failed: %v", err)
+		}
+
 		// Main thread: safe to read the app's language choice.
 		a.langChoice = mygo.App.ChosenLocale()
 		a.applyLocale = func(tag string) {
