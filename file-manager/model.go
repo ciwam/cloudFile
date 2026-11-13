@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"file-manager/locales"
@@ -70,6 +72,10 @@ type model struct {
 	sidebarSel   string
 	searchFocus  ui.Handle
 
+	// logs holds the app's diagnostic log, newest last, shown in settings
+	// and appended to the log file.
+	logs []string
+
 	// testNow overrides the clock in tests.
 	testNow func() time.Time
 }
@@ -77,6 +83,23 @@ type model struct {
 func newModel(fs vfs.FS, start string) *model {
 	return &model{fs: fs, cwd: start, sidebarSel: start, selected: -1, sidebarWidth: 200}
 }
+
+// logf appends a timestamped line to the in-app log (settings shows it)
+// and to the log file mygo keeps for the app. Safe from any goroutine.
+func (a *model) logf(format string, args ...any) {
+	line := time.Now().Format("15:04:05.000 ") + fmt.Sprintf(format, args...)
+	log.Println(line)
+	logMu.Lock()
+	a.logs = append(a.logs, line)
+	if len(a.logs) > maxLogLines {
+		a.logs = a.logs[len(a.logs)-maxLogLines:]
+	}
+	logMu.Unlock()
+}
+
+const maxLogLines = 500
+
+var logMu sync.Mutex
 
 // refresh reloads the current directory. With a window it loads
 // asynchronously and applies the result on the main thread; without one
@@ -94,6 +117,9 @@ func (a *model) refresh() {
 	win := a.win
 	go func() {
 		list, err := fs.List(context.Background(), dir)
+		if err != nil {
+			a.logf("list %s failed: %v", dir, err)
+		}
 		win.Update(func() {
 			a.applyLoaded(dir, list, err)
 		})
@@ -246,9 +272,15 @@ func (a *model) open(e entry) {
 	}
 	full, ok := a.localPath(e.path)
 	if !ok {
+		a.logf("open: no local path for %s", e.path)
 		return
 	}
-	go mygo.Shell.OpenPath(full)
+	a.logf("open with default app: %s", full)
+	go func() {
+		if err := mygo.Shell.OpenPath(full); err != nil {
+			a.logf("open failed: %v", err)
+		}
+	}()
 }
 
 // localPath resolves a VFS path on the local disk; backends without local

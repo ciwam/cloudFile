@@ -32,6 +32,7 @@ func main() {
 		a.applyLocale = func(tag string) {
 			mygo.App.SetLocale(tag)
 			a.langChoice = mygo.App.ChosenLocale()
+			a.logf("language set to %q", tag)
 		}
 
 		a.win = mygo.NewWindow(mygo.WindowOptions{
@@ -44,8 +45,10 @@ func main() {
 			Content:   ui.View(a.view),
 		})
 		a.win.OnFileDrop(func(e *mygo.FileDropEvent) {
+			a.logf("dropped %d item(s)", len(e.Paths))
 			a.importFiles(e.Paths)
 		})
+		a.logf("app ready, locale %q, start %s", mygo.App.Locale(), a.cwd)
 		a.refresh()
 	})
 	if err := mygo.App.Run(); err != nil {

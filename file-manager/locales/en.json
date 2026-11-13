@@ -49,5 +49,9 @@
   "languageEnglish": "English",
   "languageChinese": "简体中文",
   "settingsTitle": "Settings",
-  "settingsLanguageHint": "The interface language. “System” follows the system settings."
+  "settingsLanguageHint": "The interface language. “System” follows the system settings.",
+  "logTitle": "Log",
+  "logCopy": "Copy",
+  "logClear": "Clear",
+  "logEmpty": "No log entries yet."
 }

@@ -44,8 +44,17 @@ func (a *model) view(c *ui.Context) {
 	if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
 		if e := a.chosenEntry(); e != nil {
 			if full, ok := a.localPath(e.path); ok {
-				go mygo.Shell.PreviewItem(full)
+				a.logf("space preview: Quick Look %s", full)
+				go func() {
+					if err := mygo.Shell.PreviewItem(full); err != nil {
+						a.logf("space preview failed: %v", err)
+					}
+				}()
+			} else {
+				a.logf("space preview: no local path for %s", e.path)
 			}
+		} else {
+			a.logf("space preview: nothing selected (selected=%d, entries=%d)", a.selected, len(a.entries))
 		}
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyC) && !c.FocusTakesText() {
@@ -324,14 +333,14 @@ func (a *model) newFolderDialog(c *ui.Context) {
 }
 
 // settingsDialog is the settings page: the interface language, following
-// the system or one of the app's languages.
+// the system or one of the app's languages, and the diagnostic log.
 func (a *model) settingsDialog(c *ui.Context) {
 	if !a.settingsOpen {
 		return
 	}
 	ui.Modal(c, &a.settingsOpen, func() {
 		t := c.Theme()
-		ui.Column(c).Gap(12).Width(360).Children(func() {
+		ui.Column(c).Gap(12).Width(520).Height(480).Children(func() {
 			ui.Text(c, locales.SettingsTitle()).FontSize(16).Bold()
 			ui.Text(c, locales.Language()).Bold()
 			ui.Text(c, locales.SettingsLanguageHint()).FontSize(12).TextColor(t.TextMuted)
@@ -358,6 +367,33 @@ func (a *model) settingsDialog(c *ui.Context) {
 				}
 				a.langApplied = true
 			}
+			ui.Divider(c)
+			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, locales.LogTitle()).Bold().Grow(1)
+				if ui.Button(c, locales.LogCopy()).Clicked() {
+					logMu.Lock()
+					text := strings.Join(a.logs, "\n")
+					logMu.Unlock()
+					mygo.Clipboard.WriteText(text)
+					a.logf("log copied to clipboard (%d lines)", len(strings.Split(text, "\n")))
+				}
+				if ui.Button(c, locales.LogClear()).Clicked() {
+					logMu.Lock()
+					a.logs = nil
+					logMu.Unlock()
+				}
+			})
+			logMu.Lock()
+			lines := append([]string(nil), a.logs...)
+			logMu.Unlock()
+			ui.Scroll(c).Height(220).Grow(1).Background(t.Surface).Radius(6).Padding(6, 8).Children(func() {
+				if len(lines) == 0 {
+					ui.Text(c, locales.LogEmpty()).FontSize(12).TextColor(t.TextMuted)
+				}
+				for _, l := range lines {
+					ui.Text(c, l).FontSize(11).Font("monospace").SingleLine().Selectable()
+				}
+			})
 			ui.Row(c).Gap(8).Justify(ui.End).Children(func() {
 				if ui.PrimaryButton(c, locales.Done()).Clicked() {
 					a.settingsOpen = false

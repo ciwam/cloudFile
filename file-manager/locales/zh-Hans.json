@@ -49,5 +49,9 @@
   "languageEnglish": "English",
   "languageChinese": "简体中文",
   "settingsTitle": "设置",
-  "settingsLanguageHint": "界面语言。“跟随系统”使用系统设置中的语言。"
+  "settingsLanguageHint": "界面语言。“跟随系统”使用系统设置中的语言。",
+  "logTitle": "日志",
+  "logCopy": "拷贝",
+  "logClear": "清空",
+  "logEmpty": "暂无日志。"
 }

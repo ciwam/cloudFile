@@ -364,3 +364,22 @@ func TestSpaceChoosesEntry(t *testing.T) {
 		t.Fatalf("chosenEntry = %+v, want pic.png", e)
 	}
 }
+
+func TestLogShownInSettings(t *testing.T) {
+	a, tt, root := testModel(t)
+	write(t, root, "f.txt", "1")
+	a.refresh()
+	tt.Frame()
+
+	a.logf("hello log")
+	a.logf("second line")
+	tt.Frame()
+
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !tt.HasText("hello log") || !tt.HasText("second line") {
+		t.Fatalf("log lines not shown in settings, texts: %v", tt.Texts())
+	}
+}

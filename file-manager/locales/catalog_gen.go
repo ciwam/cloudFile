@@ -535,3 +535,43 @@ func SettingsLanguageHint() string { return In(i18n.Locale()).SettingsLanguageHi
 func (msgs Messages) SettingsLanguageHint() string {
 	return Catalog.Format(msgs.locale, "settingsLanguageHint", nil)
 }
+
+// LogTitle says "Log"
+// in the language the app shows.
+func LogTitle() string { return In(i18n.Locale()).LogTitle() }
+
+// LogTitle says "Log"
+// in the language of msgs.
+func (msgs Messages) LogTitle() string {
+	return Catalog.Format(msgs.locale, "logTitle", nil)
+}
+
+// LogCopy says "Copy"
+// in the language the app shows.
+func LogCopy() string { return In(i18n.Locale()).LogCopy() }
+
+// LogCopy says "Copy"
+// in the language of msgs.
+func (msgs Messages) LogCopy() string {
+	return Catalog.Format(msgs.locale, "logCopy", nil)
+}
+
+// LogClear says "Clear"
+// in the language the app shows.
+func LogClear() string { return In(i18n.Locale()).LogClear() }
+
+// LogClear says "Clear"
+// in the language of msgs.
+func (msgs Messages) LogClear() string {
+	return Catalog.Format(msgs.locale, "logClear", nil)
+}
+
+// LogEmpty says "No log entries yet."
+// in the language the app shows.
+func LogEmpty() string { return In(i18n.Locale()).LogEmpty() }
+
+// LogEmpty says "No log entries yet."
+// in the language of msgs.
+func (msgs Messages) LogEmpty() string {
+	return Catalog.Format(msgs.locale, "logEmpty", nil)
+}
