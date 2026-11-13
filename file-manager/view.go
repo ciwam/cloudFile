@@ -39,23 +39,21 @@ func (a *model) view(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyF) {
 		a.searchFocus.Focus(c)
 	}
-	// Space previews the chosen entry with Quick Look, as Finder does;
-	// ignore the key's auto-repeat so holding Space does not re-open.
-	if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
-		if e := a.chosenEntry(); e != nil {
-			if full, ok := a.localPath(e.path); ok {
-				a.logf("space preview: Quick Look %s", full)
-				go func() {
-					if err := mygo.Shell.PreviewItem(full); err != nil {
-						a.logf("space preview failed: %v", err)
-					}
-				}()
-			} else {
-				a.logf("space preview: no local path for %s", e.path)
-			}
-		} else {
-			a.logf("space preview: nothing selected (selected=%d, entries=%d)", a.selected, len(a.entries))
+	// Quick Look, as Finder's space bar does: Space opens the preview of
+	// the chosen entry, closes the panel when it shows, and the arrows
+	// move the preview through the directory while it is up. The key's
+	// auto-repeat is ignored, so holding Space does not toggle.
+	if !c.FocusTakesText() && qlPanelVisible() {
+		switch {
+		case c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated():
+			qlHidePanel()
+		case c.Shortcut(0, ui.KeyDown) && !c.ShortcutRepeated():
+			a.previewNeighbor(1)
+		case c.Shortcut(0, ui.KeyUp) && !c.ShortcutRepeated():
+			a.previewNeighbor(-1)
 		}
+	} else if c.Shortcut(0, ui.KeySpace) && !c.ShortcutRepeated() && !c.FocusTakesText() {
+		a.previewChosen()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyC) && !c.FocusTakesText() {
 		if e := a.selectedEntries(); len(e) > 0 {

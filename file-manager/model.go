@@ -76,6 +76,11 @@ type model struct {
 	// and appended to the log file.
 	logs []string
 
+	// previewIndex and previewDir track which entry of which directory the
+	// Quick Look panel shows, for the arrows to move through.
+	previewIndex int
+	previewDir   string
+
 	// testNow overrides the clock in tests.
 	testNow func() time.Time
 }
@@ -279,6 +284,59 @@ func (a *model) open(e entry) {
 	go func() {
 		if err := mygo.Shell.OpenPath(full); err != nil {
 			a.logf("open failed: %v", err)
+		}
+	}()
+}
+
+// previewChosen shows the chosen entry in the Quick Look panel, as
+// Finder's space bar does.
+func (a *model) previewChosen() {
+	e := a.chosenEntry()
+	if e == nil {
+		a.logf("space preview: nothing selected (selected=%d, entries=%d)", a.selected, len(a.entries))
+		return
+	}
+	full, ok := a.localPath(e.path)
+	if !ok {
+		a.logf("space preview: no local path for %s", e.path)
+		return
+	}
+	a.logf("space preview: Quick Look %s", full)
+	a.previewIndex = a.selected
+	a.previewDir = a.cwd
+	go func() {
+		if err := mygo.Shell.PreviewItem(full); err != nil {
+			a.logf("space preview failed: %v", err)
+		}
+	}()
+}
+
+// previewNeighbor moves the Quick Look panel to the next (dir 1) or
+// previous (dir -1) entry of the directory being previewed, as the
+// arrows in Finder's panel do. The panel's own data source holds one
+// item (mygo's), so the app drives the change itself.
+func (a *model) previewNeighbor(dir int) {
+	entries := a.filterSort(a.unfiltered)
+	if a.previewDir != a.cwd || len(entries) == 0 {
+		return // the panel shows another directory's item
+	}
+	next := a.previewIndex + dir
+	if next < 0 {
+		next = len(entries) - 1
+	} else if next >= len(entries) {
+		next = 0
+	}
+	e := entries[next]
+	full, ok := a.localPath(e.path)
+	if !ok {
+		return
+	}
+	a.logf("space preview: Quick Look %s", full)
+	a.previewIndex = next
+	a.selected = next
+	go func() {
+		if err := mygo.Shell.PreviewItem(full); err != nil {
+			a.logf("space preview failed: %v", err)
 		}
 	}()
 }
